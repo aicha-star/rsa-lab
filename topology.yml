@@ -6,7 +6,7 @@ hosts:
     # Any machine that uses a "seed" image MUST use mgmt_user "ubuntu".
     # !! "image" must be the exact name of the SEED image registered in YOUR cloud.
     base_box:
-      image: seed-ubuntu-20.04
+      image: seed
       mgmt_user: ubuntu
     flavor: m1.medium
 
