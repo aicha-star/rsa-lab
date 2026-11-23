@@ -1,0 +1,14 @@
+---
+# User account that the student uses (GUI login / SSH). The password is set by the "user-access" role in playbook.yml.
+rsa_lab_user: seed
+rsa_lab_home: "/home/{{ rsa_lab_user }}"
+rsa_lab_dir: "{{ rsa_lab_home }}/rsa-lab"
+
+# Temporary root-only directory holding the generator and its parameters. It is ALWAYS removed at the end.
+rsa_lab_workdir: /root/.rsa-lab-gen
+
+# Set to false only for local tests (no apt).
+rsa_lab_install_packages: true
+
+# The six flags come from the APG variables of variables.yml (injected by the platform as extra vars):
+#   flag_task1 ... flag_task6

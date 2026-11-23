@@ -1,0 +1,39 @@
+name: library-rsa-lab
+
+hosts:
+  - name: seed
+    # SEED Ubuntu 20.04 VM used as the student's workstation (one sandbox per student).
+    # Any machine that uses a "seed" image MUST use mgmt_user "ubuntu".
+    # !! "image" must be the exact name of the SEED image registered in YOUR cloud.
+    base_box:
+      image: seed-ubuntu-20.04
+      mgmt_user: ubuntu
+    flavor: m1.medium
+
+routers:
+  # The router only gives the sandbox access to the Internet (apt, Ansible roles).
+  - name: router
+    base_box:
+      image: debian-12-x86_64
+      mgmt_user: debian
+    flavor: m1.small
+
+wan:
+  name: internet-connection
+  cidr: 100.100.100.0/24
+
+networks:
+  - name: seed-switch
+    cidr: 10.1.33.0/24
+
+net_mappings:
+  - host: seed
+    network: seed-switch
+    ip: 10.1.33.10
+
+router_mappings:
+  - router: router
+    network: seed-switch
+    ip: 10.1.33.1
+
+groups: []

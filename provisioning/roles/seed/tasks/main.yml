@@ -1,0 +1,104 @@
+---
+# Prepares the student's RSA lab workspace on the "seed" VM:
+#   * toolchain (gcc, libssl-dev, openssl, python3) if missing
+#   * ~/rsa-lab with the static files (bn_sample.c, unlock.sh, README.txt)
+#   * ~/rsa-lab/task1..task6 with numbers that are unique for this sandbox (generate_lab.py)
+# No flag is ever stored in clear text on the VM, and the generator + its parameters are removed at the end.
+
+- name: Check that the APG variables of variables.yml were provided by the platform
+  ansible.builtin.assert:
+    that:
+      - flag_task1 is defined
+      - flag_task2 is defined
+      - flag_task3 is defined
+      - flag_task4 is defined
+      - flag_task5 is defined
+      - flag_task6 is defined
+    fail_msg: >-
+      APG variables flag_task1..flag_task6 are missing. variables.yml must be in the root of the sandbox
+      definition repository. For a manual test pass them with: -e @answers.json
+    quiet: true
+
+- name: Check that the toolchain of the lab is installed
+  ansible.builtin.shell: |
+    command -v gcc && command -v openssl && command -v python3 && test -f /usr/include/openssl/bn.h
+  register: rsa_lab_toolchain
+  changed_when: false
+  failed_when: false
+
+- name: Install the toolchain (gcc, libssl-dev, openssl, python3) when something is missing
+  ansible.builtin.apt:
+    name:
+      - gcc
+      - make
+      - libssl-dev
+      - openssl
+      - python3
+    state: present
+    update_cache: true
+    lock_timeout: 300
+  when: rsa_lab_install_packages | bool and rsa_lab_toolchain.rc != 0
+
+- name: Create the lab directory
+  ansible.builtin.file:
+    path: "{{ rsa_lab_dir }}"
+    state: directory
+    owner: "{{ rsa_lab_user }}"
+    mode: "0755"
+
+- name: Copy the static files of the lab
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ rsa_lab_dir }}/{{ item.src }}"
+    owner: "{{ rsa_lab_user }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - { src: unlock.sh, mode: "0755" }
+    - { src: bn_sample.c, mode: "0644" }
+    - { src: README.txt, mode: "0644" }
+
+- name: Generate the per-student RSA material (numbers differ in every sandbox)
+  block:
+    - name: Create the temporary root-only work directory
+      ansible.builtin.file:
+        path: "{{ rsa_lab_workdir }}"
+        state: directory
+        owner: root
+        mode: "0700"
+
+    - name: Copy the generator
+      ansible.builtin.copy:
+        src: generate_lab.py
+        dest: "{{ rsa_lab_workdir }}/generate_lab.py"
+        owner: root
+        mode: "0700"
+
+    - name: Write the generator parameters (flags) - never logged
+      ansible.builtin.template:
+        src: params.json.j2
+        dest: "{{ rsa_lab_workdir }}/params.json"
+        owner: root
+        mode: "0600"
+      no_log: true
+
+    - name: Run the generator
+      ansible.builtin.command:
+        cmd: "python3 {{ rsa_lab_workdir }}/generate_lab.py {{ rsa_lab_workdir }}/params.json"
+      register: rsa_lab_generation
+      changed_when: true
+      async: 300   # fails after 5 minutes instead of blocking the whole allocation
+      poll: 3
+
+  always:
+    - name: Remove the generator, its parameters and any temporary file
+      ansible.builtin.file:
+        path: "{{ rsa_lab_workdir }}"
+        state: absent
+
+- name: Set owner and permissions of the lab directory
+  ansible.builtin.file:
+    path: "{{ rsa_lab_dir }}"
+    state: directory
+    recurse: true
+    owner: "{{ rsa_lab_user }}"
+    mode: "u=rwX,g=rX,o=rX"

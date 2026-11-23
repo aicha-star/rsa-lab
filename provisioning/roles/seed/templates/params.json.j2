@@ -1,0 +1,12 @@
+{
+  "lab_dir": {{ rsa_lab_dir | to_json }},
+  "owner": {{ rsa_lab_owner | default(rsa_lab_user) | to_json }},
+  "flags": {
+    "task1": {{ flag_task1 | string | to_json }},
+    "task2": {{ flag_task2 | string | to_json }},
+    "task3": {{ flag_task3 | string | to_json }},
+    "task4": {{ flag_task4 | string | to_json }},
+    "task5": {{ flag_task5 | string | to_json }},
+    "task6": {{ flag_task6 | string | to_json }}
+  }
+}

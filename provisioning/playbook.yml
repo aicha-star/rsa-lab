@@ -1,0 +1,33 @@
+---
+# RSA Public-Key Encryption and Signature Lab (SEED Labs) - CyberRangeCZ sandbox provisioning
+
+# The student workstation (image "seed")
+- name: Configure seed
+  hosts: seed
+  become: true
+  roles:
+    # Login used in the "Get Access" level: seed / dees (default SEED VM credentials)
+    - role: user-access
+      user_access_username: seed
+      user_access_password: dees
+      user_access_sudo: False
+    # Creates ~/rsa-lab with the numbers of this sandbox. Uses flag_task1..flag_task6 (APG variables).
+    - role: seed
+      rsa_lab_user: seed
+
+- name: setup hosts logging roles
+  hosts:
+    - routers
+    - hosts
+  become: yes
+  vars:
+    sandbox_name: rsa-lab-local
+    # Only used when the sandbox has no management node (local sandbox). In the platform "man" exists.
+    central_syslog_ip: 78.128.251.179
+  roles:
+    - role: sandbox-logging
+      slf_destination_port: '{% if hostvars["man"] is defined -%} 514 {%- else -%} 515 {%- endif %}'
+      slf_destination: '{% if hostvars["man"] is defined -%} {{ hostvars["man"].ansible_host }} {%- else -%} {{ central_syslog_ip }} {%- endif %}'
+      slf_sandbox_id: "{{ global_sandbox_id | default(student_id) | default(0) }}"
+      slf_sandbox_name: '{{ global_sandbox_name | default(sandbox_name) }}'
+      slf_pool_id: '{{ global_pool_id | default(None) }}'

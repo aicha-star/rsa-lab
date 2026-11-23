@@ -1,0 +1,470 @@
+{
+  "title": "RSA Public-Key Encryption and Signature Lab",
+  "description": "Hands-on RSA lab (SEED Labs) in C with the OpenSSL BIGNUM library: derive a private key, encrypt, decrypt, sign, verify a signature and verify an X.509 certificate by hand. Every student gets different numbers and different flags. Scored out of 20 points (the portal displays half points, max 40).",
+  "prerequisites": [
+    "RSA algorithm (key generation, encryption, signature) from the lectures",
+    "Basic C programming and the Linux command line"
+  ],
+  "outcomes": [
+    "You will implement RSA key derivation, encryption, decryption, signature generation and verification on real numbers with the OpenSSL BIGNUM library, and you will verify an X.509 certificate signature by hand."
+  ],
+  "state": "UNRELEASED",
+  "show_stepper_bar": true,
+  "levels": [
+    {
+      "title": "Briefing",
+      "level_type": "INFO_LEVEL",
+      "order": 0,
+      "estimated_duration": 0,
+      "minimal_possible_solve_time": null,
+      "content": "# Welcome to the Crypto Vault\n\nYou have just joined the **Crypto Vault**, the (fictitious) cryptography lab of a national security agency. Before you get your clearance badge, you must pass **six missions**. Each mission is one task of the lab *RSA Public-Key Encryption and Signature* (SEED Labs): you will go through every essential step of the RSA algorithm on real numbers, using the **OpenSSL BIGNUM library in C**.\n\n## How it works\n\n* Your sandbox has **one machine, `seed`**. Everything you need is in the folder **`~/rsa-lab`** (one sub-folder per task).\n* **All the numbers are unique to your sandbox** (keys, ciphertexts, signatures, certificates). Your classmates have different numbers **and different flags**: a result or a flag copied from someone else is useless.\n* Every mission ends with a **flag**: a string of 10 letters and digits (case sensitive). Submit it in the level of the mission.\n* Do the levels in order: they follow the lab sheet.\n* The flag proves that you really did the computation. It does **not** replace your lab report (screenshots, important code snippets and explanations) if your instructor asks for one: keep your C programs.\n\n## Scoring: 20 points\n\n| Level | Task of the lab sheet | Points |\n|-|-|-|\n| 1 | Task 1 - Deriving the private key | 3 |\n| 2 | Task 2 - Encrypting a message | 3 |\n| 3 | Task 3 - Decrypting a message | 2 |\n| 4 | Task 4 - Signing a message | 3 |\n| 5 | Task 5 - Verifying a signature | 3 |\n| 6 | Task 6 - Manually verifying an X.509 certificate | 4 |\n| 7 | Final quiz (what you observed) | 2 |\n| | **Total** | **20** |\n\n* A **hint** is optional and costs between **0.5 and 2 points**, deducted from the level it belongs to (the cost is shown before you reveal it). A level can never go below 0.\n* Displaying a **solution** costs **all the points of that level**.\n* A wrong answer does not cost points by itself, but the number of wrong answers is limited to **10 per level**: after that the platform shows the solution of the level. Copy your flag carefully (letters are case sensitive).\n* **The portal counts in half points**: the maximum score displayed is **40**, and a hint costs 1 to 4 portal points. Your grade out of 20 is simply **portal score / 2**.\n\n## Useful commands\n\n* Compile a program that uses BIGNUM: `gcc prog.c -o prog -lcrypto` (the character after `-` is a lower case L)\n* ASCII to hex: `python3 -c 'print(\"A top secret!\".encode(\"utf-8\").hex())'`\n* Hex to ASCII: `python3 -c 'print(bytes.fromhex(\"4120746f702073656372657421\").decode(\"utf-8\"))'`\n* BIGNUM reference: https://linux.die.net/man/3/bn\n\nThis game is for educational purposes only. The story is fictitious.\n\n---\n*Lab sheet: \"RSA Public-Key Encryption and Signature Lab\", SEED Labs, Copyright 2018 Wenliang Du, licensed under CC BY-NC-SA 4.0. Game format based on the junior-hacker training of Masaryk University (CC BY 4.0).*"
+    },
+    {
+      "title": "Get Access",
+      "level_type": "ACCESS_LEVEL",
+      "order": 1,
+      "estimated_duration": 0,
+      "minimal_possible_solve_time": null,
+      "passkey": "start",
+      "cloud_content": "Your first task is to access the sandbox, where you will complete all following tasks. After you have successfully connected, submit the answer **`start`**.\n\n### Sandbox access\n1. In the topology overview on the right, right-click on **`seed`** and then click on **`Open GUI`**, and a new pop-up window will appear.\n2. Login with username **`seed`** and password **`dees`**.\n3. Open a terminal and type `cd ~/rsa-lab && ls`. You should see the folders `task1` ... `task6`, the example `bn_sample.c` and the helper `unlock.sh`.\n\nAlternatively, you can use SSH to connect to the machine. SSH access makes it easier to copy-paste numbers and flags, but requires more steps to set up. See [documentation](https://docs.platform.cyberrange.cz/user-guide-advanced/sandboxes/sandbox-access/#user-access) for more details.",
+      "local_content": "This sandbox has not been tested for use with local sandbox."
+    },
+    {
+      "title": "Task 1 - Deriving the Private Key",
+      "level_type": "TRAINING_LEVEL",
+      "order": 2,
+      "estimated_duration": 20,
+      "minimal_possible_solve_time": 3,
+      "answer": null,
+      "answer_variable_name": "flag_task1",
+      "content": "## Mission 1: the stolen key material\n\nA small RSA key pair has been captured. Let *p*, *q* and *e* be three prime numbers and *n = p·q*. *(e, n)* is the public key. Your job: compute the **private key *d***.\n\nYour own numbers are in **`~/rsa-lab/task1/params.txt`** (hexadecimal). *p* and *q* are 128-bit numbers: too big for ordinary C integers, which is why you need the **BIGNUM** library, but still far too small to be secure.\n\nWrite a C program (start from `~/rsa-lab/bn_sample.c`) that computes *d*.\n\n### How do I know that my *d* is correct?\n\nThe file also contains a ciphertext **`C`** that was encrypted with the public key *(e, n)* (textbook RSA, no padding). Decrypt it with your *d*: **M = C^d mod n**. M is an ASCII text once converted from hexadecimal. If *d* is wrong you will only get unreadable garbage.\n\n**The flag is the decrypted text** (10 characters: letters and digits).",
+      "solution": "*d* is the modular inverse of *e* modulo φ(n) = (p−1)(q−1):\n\n```c\nBN_sub(p1, p, one);                 // p - 1\nBN_sub(q1, q, one);                 // q - 1\nBN_mul(phi, p1, q1, ctx);           // phi(n) = (p-1)(q-1)\nBN_mod_inverse(d, e, phi, ctx);     // d = e^-1 mod phi(n)\nBN_mul(n, p, q, ctx);               // n = p*q\nBN_mod_exp(m, C, d, n, ctx);        // m = C^d mod n\n```\n\nPrint `m` with `BN_bn2hex` (use `BN_hex2bn` to load p, q, e and C), then convert it to text:\n\n```\npython3 -c 'print(bytes.fromhex(\"<hex of M>\").decode(\"utf-8\"))'\n```\n\nThe text printed is the flag.",
+      "solution_penalized": true,
+      "hints": [
+        {
+          "title": "What exactly must I compute?",
+          "content": "The private key *d* is the modular inverse of *e* modulo φ(n), where φ(n) = (p−1)·(q−1) because *n = p·q* with p and q prime.",
+          "hint_penalty": 1,
+          "order": 0
+        },
+        {
+          "title": "Which BIGNUM functions do I need?",
+          "content": "`BN_hex2bn` (load a hex number), `BN_sub` (compute p−1 and q−1, with a BIGNUM equal to 1), `BN_mul` (needs a `BN_CTX`), `BN_mod_inverse(res, a, n, ctx)` (finds *res* such that a·res mod n = 1) and `BN_bn2hex` (print). See https://linux.die.net/man/3/bn",
+          "hint_penalty": 2,
+          "order": 1
+        },
+        {
+          "title": "How do I check d and get the flag?",
+          "content": "Compute *n = p·q*, then M = C^d mod n with `BN_mod_exp(m, C, d, n, ctx)`. Print M in hexadecimal and convert it to text with `python3 -c 'print(bytes.fromhex(\"<hex of M>\").decode(\"utf-8\"))'`. The readable 10-character text is the flag.",
+          "hint_penalty": 4,
+          "order": 2
+        }
+      ],
+      "incorrect_answer_limit": 10,
+      "attachments": [],
+      "max_score": 6,
+      "variant_answers": true,
+      "reference_solution": [],
+      "mitre_techniques": [],
+      "expected_commands": [],
+      "commands_required": false
+    },
+    {
+      "title": "Task 2 - Encrypting a Message",
+      "level_type": "TRAINING_LEVEL",
+      "order": 3,
+      "estimated_duration": 10,
+      "minimal_possible_solve_time": 2,
+      "answer": null,
+      "answer_variable_name": "flag_task2",
+      "content": "## Mission 2: a top secret message\n\nLet *(e, n)* be the public key found in **`~/rsa-lab/task2/params.txt`**. Encrypt the message **`A top secret!`** (without the quotation marks).\n\n1. Convert the ASCII string to a hex string (`python3 -c 'print(\"A top secret!\".encode(\"utf-8\").hex())'`).\n2. Convert the hex string to a BIGNUM with `BN_hex2bn()` and compute the ciphertext **C = M^e mod n**.\n3. The private key *d* is also provided, **only** to help you verify your result: decrypting C must give M back.\n\n### Getting the flag\n\nThe flag of this level is stored encrypted in `~/rsa-lab/task2/flag2.enc`. The key that opens it is **your ciphertext C**. Give it to the helper:\n\n```\n~/rsa-lab/unlock.sh 2 <C in hexadecimal>\n```\n\nIf C is correct, the helper prints the flag (10 letters and digits). Submit it here.",
+      "solution": "```c\nBN_hex2bn(&M, \"4120746f702073656372657421\");   // hex of \"A top secret!\"\nBN_mod_exp(C, M, e, n, ctx);                      // C = M^e mod n\nprintBN(\"C = \", C);\n```\n\nThen:\n\n```\n~/rsa-lab/unlock.sh 2 <C>\n```\n\nCheck: `BN_mod_exp(res, C, d, n, ctx)` must print `4120746F702073656372657421`.",
+      "solution_penalized": true,
+      "hints": [
+        {
+          "title": "How do I turn the message into a number?",
+          "content": "RSA works on numbers. Convert the ASCII text to hexadecimal with the python3 command given in the level, then load it with `BN_hex2bn(&M, \"...\")`.",
+          "hint_penalty": 1,
+          "order": 0
+        },
+        {
+          "title": "Which formula and function?",
+          "content": "Encryption with the public key is **C = M^e mod n**: `BN_mod_exp(C, M, e, n, ctx)`. All values (n, e, d) are hexadecimal: load them with `BN_hex2bn`.",
+          "hint_penalty": 2,
+          "order": 1
+        },
+        {
+          "title": "How do I verify and unlock the flag?",
+          "content": "Verify by decrypting: `BN_mod_exp(res, C, d, n, ctx)` must give `4120746F702073656372657421` again. Then run `~/rsa-lab/unlock.sh 2 <C>` (hex; upper/lower case and leading zeros do not matter).",
+          "hint_penalty": 4,
+          "order": 2
+        }
+      ],
+      "incorrect_answer_limit": 10,
+      "attachments": [],
+      "max_score": 6,
+      "variant_answers": true,
+      "reference_solution": [
+        {
+          "state_name": "unlock_task2",
+          "prereq_state": [],
+          "cmd": "~/rsa-lab/unlock.sh 2 <C>",
+          "cmd_type": "bash-command",
+          "cmd_regex": ".*unlock\\.sh +2 +[0-9a-fA-Fx]+ *",
+          "optional": false
+        }
+      ],
+      "mitre_techniques": [],
+      "expected_commands": [],
+      "commands_required": false
+    },
+    {
+      "title": "Task 3 - Decrypting a Message",
+      "level_type": "TRAINING_LEVEL",
+      "order": 4,
+      "estimated_duration": 10,
+      "minimal_possible_solve_time": 2,
+      "answer": null,
+      "answer_variable_name": "flag_task3",
+      "content": "## Mission 3: the intercepted ciphertext\n\nThe keys of this task are the same as in Task 2 (they are repeated in **`~/rsa-lab/task3/params.txt`**). Decrypt the ciphertext **C** given in that file and convert the result back to a plain ASCII string (see the python3 command in the briefing).\n\n**The flag is the decrypted text** (10 characters: letters and digits).",
+      "solution": "```c\nBN_mod_exp(M, C, d, n, ctx);     // M = C^d mod n\nprintBN(\"M = \", M);\n```\n\n```\npython3 -c 'print(bytes.fromhex(\"<hex of M>\").decode(\"utf-8\"))'\n```\n\nThe printed text is the flag.",
+      "solution_penalized": true,
+      "hints": [
+        {
+          "title": "Which key decrypts?",
+          "content": "Decryption uses the **private** key: M = C^d mod n. The value *d* is in `params.txt`.",
+          "hint_penalty": 1,
+          "order": 0
+        },
+        {
+          "title": "Which function?",
+          "content": "`BN_mod_exp(M, C, d, n, ctx)`, then print M with `BN_bn2hex` (or your `printBN`).",
+          "hint_penalty": 2,
+          "order": 1
+        },
+        {
+          "title": "The output is unreadable",
+          "content": "Make sure you loaded the numbers with `BN_hex2bn` (not `BN_dec2bn`) and that n, d and C were copied completely. Then convert the hexadecimal M to text with `python3 -c 'print(bytes.fromhex(\"<hex of M>\").decode(\"utf-8\"))'`.",
+          "hint_penalty": 3,
+          "order": 2
+        }
+      ],
+      "incorrect_answer_limit": 10,
+      "attachments": [],
+      "max_score": 4,
+      "variant_answers": true,
+      "reference_solution": [],
+      "mitre_techniques": [],
+      "expected_commands": [],
+      "commands_required": false
+    },
+    {
+      "title": "Task 4 - Signing a Message",
+      "level_type": "TRAINING_LEVEL",
+      "order": 5,
+      "estimated_duration": 10,
+      "minimal_possible_solve_time": 2,
+      "answer": null,
+      "answer_variable_name": "flag_task4",
+      "content": "## Mission 4: sign here\n\nGenerate the RSA signatures of two messages with your private key *d* (keys in **`~/rsa-lab/task4/params.txt`**, same keys as Task 2). As in the lab sheet, sign each message **directly, not its hash value**:\n\n* **M1** = `I owe you $2000.`\n* **M2** = `I owe you $3000.`\n\nM1 and M2 differ by a single character. Compare the two signatures and think about what you observe: the final quiz will ask you.\n\n### Getting the flag\n\nThe flag is stored encrypted in `~/rsa-lab/task4/flag4.enc`. The key that opens it is the pair **(S1, S2)**: the signature of M1, then the signature of M2 (in this order).\n\n```\n~/rsa-lab/unlock.sh 4 <S1> <S2>\n```",
+      "solution": "A signature is the \"decryption\" of the message with the private key: **S = M^d mod n**.\n\n```c\nBN_hex2bn(&M1, \"<hex of I owe you $2000.>\");   // python3 -c 'print(\"I owe you $2000.\".encode().hex())'\nBN_mod_exp(S1, M1, d, n, ctx);\nBN_hex2bn(&M2, \"<hex of I owe you $3000.>\");\nBN_mod_exp(S2, M2, d, n, ctx);\n```\n\n```\n~/rsa-lab/unlock.sh 4 <S1> <S2>\n```",
+      "solution_penalized": true,
+      "hints": [
+        {
+          "title": "How do I sign?",
+          "content": "Signing is the same modular exponentiation as decrypting, but applied to the message: **S = M^d mod n** (private key).",
+          "hint_penalty": 1,
+          "order": 0
+        },
+        {
+          "title": "Which steps for each message?",
+          "content": "Convert the message to hex with python3 (`\"I owe you $2000.\".encode(\"utf-8\").hex()`), load it with `BN_hex2bn`, then `BN_mod_exp(S, M, d, n, ctx)`. Repeat for the second message. Beware of the `$` sign in a shell: use single quotes.",
+          "hint_penalty": 2,
+          "order": 1
+        },
+        {
+          "title": "How do I unlock the flag?",
+          "content": "Run `~/rsa-lab/unlock.sh 4 <S1> <S2>` with the signature of the **$2000** message first and the signature of the **$3000** message second.",
+          "hint_penalty": 3,
+          "order": 2
+        }
+      ],
+      "incorrect_answer_limit": 10,
+      "attachments": [],
+      "max_score": 6,
+      "variant_answers": true,
+      "reference_solution": [
+        {
+          "state_name": "unlock_task4",
+          "prereq_state": [],
+          "cmd": "~/rsa-lab/unlock.sh 4 <S1> <S2>",
+          "cmd_type": "bash-command",
+          "cmd_regex": ".*unlock\\.sh +4 +[0-9a-fA-Fx]+ +[0-9a-fA-Fx]+ *",
+          "optional": false
+        }
+      ],
+      "mitre_techniques": [],
+      "expected_commands": [],
+      "commands_required": false
+    },
+    {
+      "title": "Task 5 - Verifying a Signature",
+      "level_type": "TRAINING_LEVEL",
+      "order": 6,
+      "estimated_duration": 15,
+      "minimal_possible_solve_time": 3,
+      "answer": null,
+      "answer_variable_name": "flag_task5",
+      "content": "## Mission 5: did Alice really sign this?\n\nBob receives a message **M** from Alice, with her signature **S**. Alice's public key is *(e, n)*. Everything is in **`~/rsa-lab/task5/params.txt`** (M is text, the other values are hexadecimal).\n\n1. **Verify the signature**: compute **V1 = S^e mod n** and compare it with the hexadecimal value of M. They are equal if and only if the signature is Alice's.\n2. **Corrupt the signature by one bit**, as in the lab sheet (where the last byte changes from `2F` to `3F`): in the last byte of S, change the **second-to-last hex digit** to its pair partner (0↔1, 2↔3, 4↔5, 6↔7, 8↔9, A↔B, C↔D, E↔F). Example: `...2F` becomes `...3F`, `...D5` becomes `...C5`. Repeat the verification: **V2 = S'^e mod n**. What do you observe?\n\n### Getting the flag\n\nThe flag is stored encrypted in `~/rsa-lab/task5/flag5.enc`. The key that opens it is the pair **(V1, V2)** (in this order):\n\n```\n~/rsa-lab/unlock.sh 5 <V1> <V2>\n```",
+      "solution": "```c\nBN_mod_exp(V1, S, e, n, ctx);        // V1 = S^e mod n  -> must equal the hex of \"Launch a missile.\"\nBN_mod_exp(V2, S2, e, n, ctx);       // S2 = S with the second-to-last hex digit changed (2F -> 3F)\n```\n\nExample: if `S` ends with `...2F`, then `S'` ends with `...3F`. V1 prints `4C61756E63682061206D697373696C652E`; V2 is a completely different, meaningless number.\n\n```\n~/rsa-lab/unlock.sh 5 <V1> <V2>\n```",
+      "solution_penalized": true,
+      "hints": [
+        {
+          "title": "How is a signature verified?",
+          "content": "With the **public** key: compute S^e mod n and compare it with the original message M (as a number). If they are equal, the signature is valid.",
+          "hint_penalty": 1,
+          "order": 0
+        },
+        {
+          "title": "What do I compare, and with what function?",
+          "content": "`BN_mod_exp(V1, S, e, n, ctx)`. The hex of the message comes from python3 (`\"Launch a missile.\".encode(\"utf-8\").hex()`). Print V1 with `BN_bn2hex` and compare.",
+          "hint_penalty": 2,
+          "order": 1
+        },
+        {
+          "title": "How do I corrupt the signature correctly?",
+          "content": "Edit the hexadecimal string of S: only the last two hex digits matter. Replace the second-to-last digit d by d XOR 1 (`2F` becomes `3F`, `3F` becomes `2F`, `D5` becomes `C5`, `A7` becomes `B7`...). Compute V2 = S'^e mod n, then `~/rsa-lab/unlock.sh 5 <V1> <V2>`.",
+          "hint_penalty": 4,
+          "order": 2
+        }
+      ],
+      "incorrect_answer_limit": 10,
+      "attachments": [],
+      "max_score": 6,
+      "variant_answers": true,
+      "reference_solution": [
+        {
+          "state_name": "unlock_task5",
+          "prereq_state": [],
+          "cmd": "~/rsa-lab/unlock.sh 5 <V1> <V2>",
+          "cmd_type": "bash-command",
+          "cmd_regex": ".*unlock\\.sh +5 +[0-9a-fA-Fx]+ +[0-9a-fA-Fx]+ *",
+          "optional": false
+        }
+      ],
+      "mitre_techniques": [],
+      "expected_commands": [],
+      "commands_required": false
+    },
+    {
+      "title": "Task 6 - Manually Verifying an X.509 Certificate",
+      "level_type": "TRAINING_LEVEL",
+      "order": 7,
+      "estimated_duration": 25,
+      "minimal_possible_solve_time": 5,
+      "answer": null,
+      "answer_variable_name": "flag_task6",
+      "content": "## Mission 6: trust, but verify\n\nAn X.509 certificate contains data about a public key and the signature of its issuer (a Certificate Authority) on that data. You will verify, **by hand**, that a server certificate really was signed by its CA.\n\nIn this sandbox the Internet is not guaranteed, so **Step 1 of the lab sheet (downloading the certificates) is already done**. In **`~/rsa-lab/task6/`**:\n\n* **`c0.pem`**: the certificate of a web server (the *server certificate*)\n* **`c1.pem`**: the certificate of its issuer, the CA\n\nBoth are unique to your sandbox. Follow the steps of the lab sheet:\n\n* **Step 2**: extract the CA's public key *(e, n)* from `c1.pem`: `openssl x509 -in c1.pem -noout -modulus` and `openssl x509 -in c1.pem -text -noout` (find the exponent).\n* **Step 3**: extract the signature from `c0.pem` (`-text`), then remove spaces and colons: `... | tr -d '[:space:]:'`.\n* **Step 4**: extract the *body* of `c0.pem` (everything but the signature block) with `openssl asn1parse -i -in c0.pem` then `-strparse 4 -out c0_body.bin -noout`, and compute its hash: `sha256sum c0_body.bin`.\n* **Step 5**: verify the signature with **your own C program** (BIGNUM): compute **S^e mod n**. The CA signs the *hash* of the body, wrapped in PKCS#1 v1.5 padding, so the result is a long block that **ends with the SHA-256 hash** you computed in Step 4. If it does, the signature is valid.\n\n### Getting the flag\n\nThe flag is stored encrypted in `~/rsa-lab/task6/flag6.enc`. The key that opens it is the **entire value S^e mod n** printed by your program (not only the hash):\n\n```\n~/rsa-lab/unlock.sh 6 <S^e mod n>\n```",
+      "solution": "```bash\ncd ~/rsa-lab/task6\nopenssl x509 -in c1.pem -noout -modulus                    # n of the CA   (Modulus=...)\nopenssl x509 -in c1.pem -text -noout | grep -i exponent     # e = 65537 = 010001\nopenssl x509 -in c0.pem -text -noout                        # signature = LAST block of hex bytes\necho '<signature block>' | tr -d '[:space:]:' > sig.txt\nopenssl asn1parse -i -in c0.pem                             # body starts at offset 4\nopenssl asn1parse -i -in c0.pem -strparse 4 -out c0_body.bin -noout\nsha256sum c0_body.bin\n```\n\nOwn program: `BN_hex2bn` for S (from `sig.txt`), e and n, then `BN_mod_exp(res, S, e, n, ctx)`. The printed value looks like `01FFFF...FF003031300D060960864801650304020105000420<64 hex digits = sha256sum of c0_body.bin>`.\n\n```\n~/rsa-lab/unlock.sh 6 <that whole value>\n```",
+      "solution_penalized": true,
+      "hints": [
+        {
+          "title": "Which certificate gives n and e?",
+          "content": "The signature on the server certificate `c0.pem` was made by the CA, so you verify it with the **CA's** public key: take *n* and *e* from the **issuer's** certificate `c1.pem` (`-modulus`, and `-text` for the exponent).",
+          "hint_penalty": 1,
+          "order": 0
+        },
+        {
+          "title": "How do I get the signature and the body?",
+          "content": "In `openssl x509 -in c0.pem -text -noout` the signature is the **last** block of hex bytes (after the last `Signature Algorithm` line); remove spaces and colons with `tr -d '[:space:]:'`. For the body use `openssl asn1parse -i -in c0.pem` (the body is the field at offset 4), then `-strparse 4 -out c0_body.bin -noout`, then `sha256sum c0_body.bin`.",
+          "hint_penalty": 2,
+          "order": 1
+        },
+        {
+          "title": "How do I verify and unlock?",
+          "content": "In your own C program: `BN_mod_exp(res, S, e, n, ctx)` with S, e and n loaded by `BN_hex2bn`. Print `res` in hexadecimal: its last 64 hex digits must be the `sha256sum` of the body (valid signature). Pass the **whole** printed value to `~/rsa-lab/unlock.sh 6`.",
+          "hint_penalty": 4,
+          "order": 2
+        }
+      ],
+      "incorrect_answer_limit": 10,
+      "attachments": [],
+      "max_score": 8,
+      "variant_answers": true,
+      "reference_solution": [
+        {
+          "state_name": "ca_modulus",
+          "prereq_state": [],
+          "cmd": "openssl x509 -in c1.pem -noout -modulus",
+          "cmd_type": "bash-command",
+          "cmd_regex": ".*openssl +x509 .*-modulus.*",
+          "optional": false
+        },
+        {
+          "state_name": "cert_body",
+          "prereq_state": [],
+          "cmd": "openssl asn1parse -i -in c0.pem -strparse 4 -out c0_body.bin -noout",
+          "cmd_type": "bash-command",
+          "cmd_regex": ".*openssl +asn1parse .*-strparse +4.*",
+          "optional": false
+        },
+        {
+          "state_name": "body_hash",
+          "prereq_state": [
+            "cert_body"
+          ],
+          "cmd": "sha256sum c0_body.bin",
+          "cmd_type": "bash-command",
+          "cmd_regex": ".*sha256sum +.*c0_body\\.bin.*",
+          "optional": false
+        },
+        {
+          "state_name": "unlock_task6",
+          "prereq_state": [
+            "body_hash"
+          ],
+          "cmd": "~/rsa-lab/unlock.sh 6 <S^e mod n>",
+          "cmd_type": "bash-command",
+          "cmd_regex": ".*unlock\\.sh +6 +[0-9a-fA-Fx]+ *",
+          "optional": false
+        }
+      ],
+      "mitre_techniques": [],
+      "expected_commands": [],
+      "commands_required": false
+    },
+    {
+      "title": "Final quiz - what did you observe?",
+      "level_type": "ASSESSMENT_LEVEL",
+      "order": 8,
+      "estimated_duration": 5,
+      "minimal_possible_solve_time": null,
+      "questions": [
+        {
+          "question_type": "MCQ",
+          "text": "Task 4: you signed two messages that differ by one single character ($2000 and $3000). What do you observe?",
+          "points": 1,
+          "penalty": 0,
+          "order": 0,
+          "answer_required": true,
+          "choices": [
+            {
+              "text": "Only the last few hex digits of the two signatures differ",
+              "correct": false,
+              "order": 0
+            },
+            {
+              "text": "The two signatures are completely different, with no visible relation between them",
+              "correct": true,
+              "order": 1
+            },
+            {
+              "text": "The two signatures are identical",
+              "correct": false,
+              "order": 2
+            },
+            {
+              "text": "The second signature is the first one plus a constant",
+              "correct": false,
+              "order": 3
+            }
+          ]
+        },
+        {
+          "question_type": "MCQ",
+          "text": "Task 5: only one bit of the signature S is changed. What happens when you verify it (S'^e mod n)?",
+          "points": 1,
+          "penalty": 0,
+          "order": 1,
+          "answer_required": true,
+          "choices": [
+            {
+              "text": "The result is the original message M, with one wrong bit",
+              "correct": false,
+              "order": 0
+            },
+            {
+              "text": "The result is still exactly M: RSA corrects one-bit errors",
+              "correct": false,
+              "order": 1
+            },
+            {
+              "text": "The result is a completely different, meaningless number: the verification fails",
+              "correct": true,
+              "order": 2
+            },
+            {
+              "text": "The computation produces an error and no value",
+              "correct": false,
+              "order": 3
+            }
+          ]
+        },
+        {
+          "question_type": "MCQ",
+          "text": "In this lab the messages were signed directly. What is signed in practice, and why?",
+          "points": 1,
+          "penalty": 0,
+          "order": 2,
+          "answer_required": true,
+          "choices": [
+            {
+              "text": "The hash of the message: it has a fixed small size (the message may be longer than the modulus) and signing is faster",
+              "correct": true,
+              "order": 0
+            },
+            {
+              "text": "The public key of the signer, to prove who signed",
+              "correct": false,
+              "order": 1
+            },
+            {
+              "text": "The message encrypted with the public key e",
+              "correct": false,
+              "order": 2
+            },
+            {
+              "text": "Nothing else: signing the whole message directly is the recommended practice",
+              "correct": false,
+              "order": 3
+            }
+          ]
+        },
+        {
+          "question_type": "MCQ",
+          "text": "Task 6: which part of an X.509 certificate is hashed and then signed by the CA?",
+          "points": 1,
+          "penalty": 0,
+          "order": 3,
+          "answer_required": true,
+          "choices": [
+            {
+              "text": "The signature block of the certificate itself",
+              "correct": false,
+              "order": 0
+            },
+            {
+              "text": "Only the public key of the server",
+              "correct": false,
+              "order": 1
+            },
+            {
+              "text": "The certificate body (everything except the signature block, also called TBSCertificate)",
+              "correct": true,
+              "order": 2
+            },
+            {
+              "text": "The private key of the server",
+              "correct": false,
+              "order": 3
+            }
+          ]
+        }
+      ],
+      "instructions": "Last step: four short questions about what you observed during the lab. Each correct answer is worth 0.5 point (1 portal point). Wrong answers do not cost points.",
+      "assessment_type": "TEST"
+    }
+  ],
+  "estimated_duration": 95,
+  "variant_sandboxes": false
+}

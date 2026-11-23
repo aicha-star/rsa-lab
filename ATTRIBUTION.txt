@@ -1,0 +1,21 @@
+The lab tasks of this project are derived from the SEED Labs lab
+"RSA Public-Key Encryption and Signature Lab" (https://seedsecuritylabs.org),
+Copyright (c) 2018 by Wenliang Du, licensed under the Creative Commons
+Attribution-NonCommercial-ShareAlike 4.0 International License
+(https://creativecommons.org/licenses/by-nc-sa/4.0/).
+This work was remixed (adapted to the CyberRangeCZ Platform, with per-student numbers and flags).
+The SEED Labs copyright notice must be kept intact in any redistribution. Non-commercial use only.
+
+The game format, the sandbox structure and the logging provisioning are based on the project
+library-junior-hacker (https://github.com/cyberrangecz/library-junior-hacker): the code is licensed
+under the MIT License and the game design under the Creative Commons Attribution 4.0 International
+License (CC BY 4.0). That project is itself based on the game design from:
+junior-hacker (https://gitlab.ics.muni.cz/muni-kypo-trainings/games/junior-hacker)
+
+**Cybersecurity Laboratory**
+Faculty of Informatics
+Masaryk University
+
+**Leading author:** Miriam Gáliková
+
+**Contributors/Consultants:** Valdemar Švábenský, Jan Vykopal
