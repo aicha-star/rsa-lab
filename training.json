@@ -56,7 +56,7 @@
         {
           "title": "How do I check d and get the flag?",
           "content": "Compute *n = p·q*, then M = C^d mod n with `BN_mod_exp(m, C, d, n, ctx)`. Print M in hexadecimal and convert it to text with `python3 -c 'print(bytes.fromhex(\"<hex of M>\").decode(\"utf-8\"))'`. The readable 10-character text is the flag.",
-          "hint_penalty": 4,
+          "hint_penalty": 2,
           "order": 2
         }
       ],
@@ -96,7 +96,7 @@
         {
           "title": "How do I verify and unlock the flag?",
           "content": "Verify by decrypting: `BN_mod_exp(res, C, d, n, ctx)` must give `4120746F702073656372657421` again. Then run `~/rsa-lab/unlock.sh 2 <C>` (hex; upper/lower case and leading zeros do not matter).",
-          "hint_penalty": 4,
+          "hint_penalty": 2,
           "order": 2
         }
       ],
@@ -139,13 +139,13 @@
         {
           "title": "Which function?",
           "content": "`BN_mod_exp(M, C, d, n, ctx)`, then print M with `BN_bn2hex` (or your `printBN`).",
-          "hint_penalty": 2,
+          "hint_penalty": 1,
           "order": 1
         },
         {
           "title": "The output is unreadable",
           "content": "Make sure you loaded the numbers with `BN_hex2bn` (not `BN_dec2bn`) and that n, d and C were copied completely. Then convert the hexadecimal M to text with `python3 -c 'print(bytes.fromhex(\"<hex of M>\").decode(\"utf-8\"))'`.",
-          "hint_penalty": 3,
+          "hint_penalty": 1,
           "order": 2
         }
       ],
@@ -185,7 +185,7 @@
         {
           "title": "How do I unlock the flag?",
           "content": "Run `~/rsa-lab/unlock.sh 4 <S1> <S2>` with the signature of the **$2000** message first and the signature of the **$3000** message second.",
-          "hint_penalty": 3,
+          "hint_penalty": 2,
           "order": 2
         }
       ],
@@ -234,7 +234,7 @@
         {
           "title": "How do I corrupt the signature correctly?",
           "content": "Edit the hexadecimal string of S: only the last two hex digits matter. Replace the second-to-last digit d by d XOR 1 (`2F` becomes `3F`, `3F` becomes `2F`, `D5` becomes `C5`, `A7` becomes `B7`...). Compute V2 = S'^e mod n, then `~/rsa-lab/unlock.sh 5 <V1> <V2>`.",
-          "hint_penalty": 4,
+          "hint_penalty": 2,
           "order": 2
         }
       ],
